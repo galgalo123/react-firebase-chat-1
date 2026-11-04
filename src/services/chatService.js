@@ -1,10 +1,12 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   serverTimestamp,
   setDoc,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
@@ -54,4 +56,18 @@ export async function sendMessage(conversationId, senderId, rawText) {
   });
 
   await batch.commit();
+}
+
+export async function editMessage(conversationId, messageId, rawText) {
+  const text = rawText.trim();
+  if (!text) throw new Error('Message is empty.');
+
+  await updateDoc(doc(db, 'conversations', conversationId, 'messages', messageId), {
+    text,
+    editedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteMessage(conversationId, messageId) {
+  await deleteDoc(doc(db, 'conversations', conversationId, 'messages', messageId));
 }

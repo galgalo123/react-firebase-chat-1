@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { loginUser, getAuthErrorMessage } from '../services/authService.js';
+import Logo from '../components/Logo.jsx';
 
 export default function Login({ onSwitch }) {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -30,7 +31,12 @@ export default function Login({ onSwitch }) {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit} noValidate>
-        <h1>Sign in</h1>
+        <div className="auth-brand">
+          <Logo />
+          <h1>Welcome to ChitChat!</h1>
+          <p>Sign in to keep chatting with your classmates.</p>
+        </div>
+
         {error && <p className="error-banner">{error}</p>}
 
         <label className="field">

@@ -35,13 +35,16 @@ export default function ChatWindow({ otherUser, onBack }) {
     };
   }, [currentUser.uid, otherUser.uid]);
 
+  const initial = (otherUser.displayName || otherUser.email || '?')[0].toUpperCase();
+
   return (
     <div className="chat-window">
       <header className="chat-header">
-        <button className="btn btn-ghost back-btn" onClick={onBack} aria-label="Back to users">
+        <button className="btn btn-ghost back-btn" onClick={onBack} aria-label="Back to people">
           ←
         </button>
-        <div>
+        <span className="avatar">{initial}</span>
+        <div className="chat-title">
           <strong>{otherUser.displayName || 'Unnamed user'}</strong>
           <span className="muted small">{otherUser.email}</span>
         </div>
@@ -53,11 +56,12 @@ export default function ChatWindow({ otherUser, onBack }) {
       {conversationId && (
         <>
           <MessageList
-            messages={messages}
-            loading={loading}
-            error={error}
-            currentUid={currentUser.uid}
-          />
+  conversationId={conversationId}
+  messages={messages}
+  loading={loading}
+  error={error}
+  currentUid={currentUser.uid}
+/>
           <MessageInput conversationId={conversationId} senderId={currentUser.uid} />
         </>
       )}

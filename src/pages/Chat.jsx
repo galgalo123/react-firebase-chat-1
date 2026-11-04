@@ -20,8 +20,9 @@ export default function Chat() {
           />
         ) : (
           <div className="empty-state">
-            <h2>Select a classmate</h2>
-            <p>Choose someone from the list to start a conversation.</p>
+            <div className="empty-icon">💬</div>
+            <h2>Welcome to Chit Chat</h2>
+            <p>Pick someone from the list to start a conversation.</p>
           </div>
         )}
       </section>

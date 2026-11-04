@@ -1,81 +1,121 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { fetchUsers } from '../services/chatService.js';
+import { useUsers } from '../hooks/useUsers.js';
+import { useConversations } from '../hooks/useConversations.js';
 import UserSearch from './UserSearch.jsx';
+
+const initial = (u) => (u.displayName || u.email || '?')[0].toUpperCase();
+
+function matches(user, term) {
+  if (!term) return true;
+  return (
+    user.displayName?.toLowerCase().includes(term) ||
+    user.email?.toLowerCase().includes(term)
+  );
+}
+
+function PersonRow({ user, subtitle, active, onClick }) {
+  return (
+    <button className={`user-item ${active ? 'active' : ''}`} onClick={onClick}>
+      <span className="avatar">{initial(user)}</span>
+      <span className="user-meta">
+        <strong>{user.displayName || 'Unnamed user'}</strong>
+        <span className="preview">{subtitle}</span>
+      </span>
+    </button>
+  );
+}
 
 export default function UserList({ selectedUid, onSelect }) {
   const { currentUser } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { users, loading, error } = useUsers();
+  const conversations = useConversations(currentUser.uid);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
+  const term = search.trim().toLowerCase();
 
-    fetchUsers()
-      .then((list) => {
-        if (!cancelled) setUsers(list);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!cancelled) setError('Could not load the user list.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+  const others = useMemo(
+    () => users.filter((u) => u.uid !== currentUser.uid),
+    [users, currentUser.uid]
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Conversations that have at least one message, paired with the other person's profile.
+  const recent = useMemo(() => {
+    const byUid = new Map(others.map((u) => [u.uid, u]));
+    return conversations
+      .filter((c) => c.lastMessage)
+      .map((c) => ({
+        conversation: c,
+        user: byUid.get(c.participants.find((p) => p !== currentUser.uid)),
+      }))
+      .filter((r) => r.user);
+  }, [conversations, others, currentUser.uid]);
 
-  const visibleUsers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return users
-      .filter((u) => u.uid !== currentUser.uid)
-      .filter(
-        (u) =>
-          !term ||
-          u.displayName?.toLowerCase().includes(term) ||
-          u.email?.toLowerCase().includes(term)
-      );
-  }, [users, search, currentUser.uid]);
+  const showRecent = !term && recent.length > 0;
+  const recentUids = new Set(recent.map((r) => r.user.uid));
+
+  const people = term
+    ? others.filter((u) => matches(u, term))
+    : others.filter((u) => !recentUids.has(u.uid));
+
+  const nothingToShow = !showRecent && people.length === 0;
 
   return (
     <>
       <div className="sidebar-header">
-        <h2>Students</h2>
+        <div className="sidebar-title">
+          <h2>Chats</h2>
+          <span className="count">{others.length}</span>
+        </div>
         <UserSearch value={search} onChange={setSearch} />
       </div>
 
-      {loading && <p className="status">Loading users…</p>}
+      {loading && <p className="status">Loading people…</p>}
       {error && <p className="error-banner">{error}</p>}
 
-      {!loading && !error && visibleUsers.length === 0 && (
-        <p className="status muted">
-          {search ? 'No users match your search.' : 'No other users have registered yet.'}
-        </p>
+      {!loading && !error && (
+        <ul className="user-list">
+          {showRecent && (
+            <>
+              <li className="section-label">Recent</li>
+              {recent.map(({ conversation, user }) => (
+                <li key={conversation.id}>
+                  <PersonRow
+                    user={user}
+                    subtitle={conversation.lastMessage}
+                    active={selectedUid === user.uid}
+                    onClick={() => onSelect(user)}
+                  />
+                </li>
+              ))}
+            </>
+          )}
+
+          {people.length > 0 && (
+            <>
+              <li className="section-label">
+                {term ? 'Results' : showRecent ? 'Everyone else' : 'Everyone'}
+              </li>
+              {people.map((u) => (
+                <li key={u.uid}>
+                  <PersonRow
+                    user={u}
+                    subtitle={u.email}
+                    active={selectedUid === u.uid}
+                    onClick={() => onSelect(u)}
+                  />
+                </li>
+              ))}
+            </>
+          )}
+        </ul>
       )}
 
-      <ul className="user-list">
-        {visibleUsers.map((u) => (
-          <li key={u.uid}>
-            <button
-              className={`user-item ${selectedUid === u.uid ? 'active' : ''}`}
-              onClick={() => onSelect(u)}
-            >
-              <span className="avatar">
-                {(u.displayName || u.email || '?')[0].toUpperCase()}
-              </span>
-              <span className="user-meta">
-                <strong>{u.displayName || 'Unnamed user'}</strong>
-                <span className="muted small">{u.email}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {!loading && !error && nothingToShow && (
+        <p className="status">
+          {term ? 'No one matches that search.' : 'No one else has joined yet.'}
+        </p>
+      )}
     </>
   );
 }

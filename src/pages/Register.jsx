@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { registerUser, getAuthErrorMessage } from '../services/authService.js';
+import Logo from '../components/Logo.jsx';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,7 +46,12 @@ export default function Register({ onSwitch }) {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit} noValidate>
-        <h1>Create account</h1>
+        <div className="auth-brand">
+          <Logo />
+          <h1>Create your account</h1>
+          <p>Join Chit Chat in a few seconds.</p>
+        </div>
+
         {error && <p className="error-banner">{error}</p>}
 
         <label className="field">

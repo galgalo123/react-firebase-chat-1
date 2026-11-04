@@ -72,7 +72,20 @@ service cloud.firestore {
           && request.resource.data.text.size() <= 1000
           && request.resource.data.createdAt == request.time;
 
-        allow update, delete: if false;
+        // Only the sender can edit, and only the text and editedAt can change.
+        allow update: if isParticipant(conversationId)
+          && resource.data.senderId == request.auth.uid
+          && request.resource.data.senderId == resource.data.senderId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'createdAt', 'editedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.editedAt == request.time;
+
+        // Only the sender can delete their own message.
+        allow delete: if isParticipant(conversationId)
+          && resource.data.senderId == request.auth.uid;
       }
     }
   }
